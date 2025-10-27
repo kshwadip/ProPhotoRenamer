@@ -374,7 +374,7 @@
 							</div>
 							<div class="usage-details">
 								<span
-									>You've used {serverUsage.used} out of {serverUsage.limit} free photos</span
+									>You've used {serverUsage.used} out of {serverUsage.limit} free photos (Anonymously Tracked For Usage)</span
 								>
 								<div class="usage-bar">
 									<div
