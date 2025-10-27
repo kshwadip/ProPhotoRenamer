@@ -374,7 +374,7 @@
 							</div>
 							<div class="usage-details">
 								<span
-									>You've used {serverUsage.used} out of {serverUsage.limit} free photos (server-tracked)</span
+									>You've used {serverUsage.used} out of {serverUsage.limit} free photos</span
 								>
 								<div class="usage-bar">
 									<div
@@ -392,7 +392,7 @@
 						{/if}
 					{:else}
 						<div class="usage-stats">
-							<span class="usage-text">Loading server usage...</span>
+							<span class="usage-text">Loading usage...</span>
 						</div>
 					{/if}
 				</div>
