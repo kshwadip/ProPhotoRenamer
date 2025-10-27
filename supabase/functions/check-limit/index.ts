@@ -6,19 +6,19 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-serve(async (req: { method: string; json: () => PromiseLike<{ fingerprint: any; photosToAdd?: 0 | undefined }> | { fingerprint: any; photosToAdd?: 0 | undefined } }) => {
+serve(async (req: { method: string; json: () => PromiseLike<{ fingerprint: any; photosToAdd?: 0 | undefined; action?: "check" | undefined }> | { fingerprint: any; photosToAdd?: 0 | undefined; action?: "check" | undefined } }) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    // Use hardcoded values since env vars might not be available
+    // Use service_role key to write to database
     const supabaseClient = createClient(
       'https://vnustygjnsuncyhnqlxl.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZudXN0eWdqbnN1bmN5aG5xbHhsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MTQwMTU1MSwiZXhwIjoyMDc2OTc3NTUxfQ.cGfW_MMtrKDtNDv8pOQ-gESnG7byvUUpWus3nrTR7Ig'
     )
 
-    const { fingerprint, photosToAdd = 0 } = await req.json()
+    const { fingerprint, photosToAdd = 0, action = 'check' } = await req.json()
     
     if (!fingerprint) {
       return new Response(
@@ -27,12 +27,42 @@ serve(async (req: { method: string; json: () => PromiseLike<{ fingerprint: any; 
       )
     }
 
-    // Get download events for this fingerprint
-    const { data: events } = await supabaseClient
+    // Handle recording downloads separately from analytics
+    if (action === 'record_download' && photosToAdd > 0) {
+      try {
+        await supabaseClient
+          .from('analytics_events')
+          .insert({
+            session_id: `session_${Date.now()}`,
+            event_type: 'download_completed',
+            event_data: { photo_count: photosToAdd },
+            user_fingerprint: fingerprint,
+            created_at: new Date().toISOString()
+          });
+
+        return new Response(
+          JSON.stringify({ success: true, message: 'Download recorded' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      } catch (error) {
+        console.error('Failed to record download:', error)
+        return new Response(
+          JSON.stringify({ error: 'Failed to record download' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+    }
+
+    // Get download events for this fingerprint (check action)
+    const { data: events, error: fetchError } = await supabaseClient
       .from('analytics_events')
       .select('event_data')
       .eq('user_fingerprint', fingerprint)
       .eq('event_type', 'download_completed')
+
+    if (fetchError) {
+      console.error('Database fetch error:', fetchError)
+    }
 
     const totalUsed = events?.reduce((sum: number, event: any) => 
       sum + (event.event_data?.photo_count || event.event_data?.photoCount || 0), 0) || 0

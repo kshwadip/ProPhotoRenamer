@@ -21,7 +21,15 @@
 	let isExtracting = false;
 	let isDownloading = false;
 	let downloadProgress = 0;
-	let serverUsage: { remaining: any; limit: any; } | null = null;
+
+	interface ServerUsage {
+		remaining: number;
+		limit: number;
+		used: number;
+		canAdd: boolean;
+		photosToAdd: number;
+	}
+	let serverUsage: ServerUsage | null = null;
 
 	$: photos = $filesStore.photos;
 	$: selectedPhotos = photos.filter((p) => p.selected);
@@ -37,14 +45,19 @@
 
 	onMount(async () => {
 		analyticsStore.trackEvent('page_view');
+		console.log('🔍 onMount: fetching server usage...');
 		serverUsage = await fetchServerUsage();
+		console.log('🔍 onMount: serverUsage result:', serverUsage);
 	});
 
 	async function fetchServerUsage() {
+		console.log('🔍 fetchServerUsage called, shouldEnforceLimits():', shouldEnforceLimits());
+
 		if (!shouldEnforceLimits()) return null;
 
 		try {
 			const fingerprint = generateFingerprint();
+			console.log('🔍 Generated fingerprint:', fingerprint);
 
 			const response = await fetch(
 				'https://vnustygjnsuncyhnqlxl.supabase.co/functions/v1/check-limit',
@@ -61,10 +74,12 @@
 				}
 			);
 
+			console.log('🔍 Server response status:', response.status, response.ok);
 			const result = await response.json();
+			console.log('🔍 Server response data:', result);
 			return result;
 		} catch (error) {
-			console.error('Failed to fetch server usage:', error);
+			console.error('🔍 Failed to fetch server usage:', error);
 			return null;
 		}
 	}
@@ -251,6 +266,29 @@
 				});
 			}
 
+			// ALWAYS track downloads for usage limits (separate from analytics consent)
+			if (shouldEnforceLimits()) {
+				try {
+					await fetch('https://vnustygjnsuncyhnqlxl.supabase.co/functions/v1/check-limit', {
+						method: 'POST',
+						headers: {
+							Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZudXN0eWdqbnN1bmN5aG5xbHhsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE0MDE1NTEsImV4cCI6MjA3Njk3NzU1MX0.DCu7-JhaLDBJzLvGCfkGJZYKbCS4qGgoXZNOR1Z9Kn4`,
+							'Content-Type': 'application/json'
+						},
+						body: JSON.stringify({
+							fingerprint: generateFingerprint(),
+							photosToAdd: selectedPhotos.length,
+							action: 'record_download'
+						})
+					});
+
+					// Refresh server usage after recording download
+					serverUsage = await fetchServerUsage();
+				} catch (error) {
+					console.error('Failed to record download for usage tracking:', error);
+				}
+			}
+
 			downloadZip(zipResult);
 
 			notifications.show(
@@ -327,28 +365,33 @@
 		{:else if shouldEnforceLimits()}
 			<section class="usage-info-section">
 				<div class="usage-info-card">
-					<div class="usage-stats">
-						<div class="usage-main">
-							<span class="usage-number">{usageStore.getUsageStats().remaining}</span>
-							<span class="usage-text">free photos remaining</span>
-						</div>
-						<div class="usage-details">
-							<span
-								>You've used {usageStore.getUsageStats().used} out of {usageStore.getUsageStats()
-									.limit} free photos</span
-							>
-							<div class="usage-bar">
-								<div
-									class="usage-progress"
-									style="width: {usageStore.getUsageStats().percentage}%"
-								></div>
+					{#if serverUsage}
+						<div class="usage-stats">
+							<div class="usage-main">
+								<span class="usage-number">{serverUsage.remaining}</span>
+								<span class="usage-text">free photos remaining</span>
+							</div>
+							<div class="usage-details">
+								<span
+									>You've used {serverUsage.used} out of {serverUsage.limit} free photos (server-tracked)</span
+								>
+								<div class="usage-bar">
+									<div
+										class="usage-progress"
+										style="width: {(serverUsage.used / serverUsage.limit) * 100}%"
+									></div>
+								</div>
 							</div>
 						</div>
-					</div>
-					{#if usageStore.getUsageStats().remaining === 0}
-						<div class="upgrade-prompt">
-							<p>🚀 <strong>Upgrade to Pro</strong> for unlimited photo processing!</p>
-							<button class="btn-primary">Get Pro Version</button>
+						{#if serverUsage.remaining === 0}
+							<div class="upgrade-prompt">
+								<p>🚀 <strong>Upgrade to Pro</strong> for unlimited photo processing!</p>
+								<button class="btn-primary">Get Pro Version</button>
+							</div>
+						{/if}
+					{:else}
+						<div class="usage-stats">
+							<span class="usage-text">Loading server usage...</span>
 						</div>
 					{/if}
 				</div>
