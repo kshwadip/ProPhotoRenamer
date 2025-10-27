@@ -1,15 +1,16 @@
 <script lang="ts">
 	import { filesStore, selectedCount, totalFiles } from '$lib/stores/files';
-	import { extractExif } from '$lib/utils/exif';
-	import { applyTemplate, batchRename } from '$lib/utils/rename';
-	import { createZip, downloadZip, type ZipResult } from '$lib/utils/zip';
-	import type { Photo } from '$lib/types/photo';
-	import { usageStore } from '$lib/stores/usage';
-	import { notifications } from '$lib/stores/notification';
-	import { shouldEnforceLimits } from '$lib/utils/environment';
-	import { analyticsStore } from '$lib/stores/analytics';
-	import { onMount } from 'svelte';
-
+    import { extractExif } from '$lib/utils/exif';
+    import { applyTemplate, batchRename } from '$lib/utils/rename';
+    import { createZip, downloadZip, type ZipResult } from '$lib/utils/zip';
+    import type { Photo } from '$lib/types/photo';
+    import { usageStore } from '$lib/stores/usage';
+    import { notifications } from '$lib/stores/notification';
+    import { shouldEnforceLimits } from '$lib/utils/environment';
+    import { analyticsStore } from '$lib/stores/analytics';
+    import { generateFingerprint } from '$lib/utils/fingerprint';
+    import { onMount } from 'svelte';
+	
 	import Dropzone from '../components/Dropzone.svelte';
 	import FileList from '../components/FileList.svelte';
 	import TemplateEditor from '../components/TemplateEditor.svelte';
@@ -109,26 +110,82 @@
 
 	async function handleFilesAdded(files: File[]) {
 		if (shouldEnforceLimits()) {
-			const stats = usageStore.getUsageStats();
+			try {
+				const fingerprint = generateFingerprint();
 
-			if (stats.remaining === 0) {
-				notifications.show(
-					'error',
-					`You've reached the free limit of ${stats.limit} photos. Upgrade to Pro for unlimited processing!`,
-					6000
+				const response = await fetch(
+					'https://vnustygjnsuncyhnqkl.supabase.co/functions/v1/check-limit',
+					{
+						method: 'POST',
+						headers: {
+							Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZudXN0eWdqbnN1bmN5aG5xa2wiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTcyOTk1MDAwNSwiZXhwIjoyMDQ1NTI2MDA1fQ.gCNdClDCaNwWIDc7hcGGRoGaAP9HH7g6ltLpGYW_ERE`,
+							'Content-Type': 'application/json'
+						},
+						body: JSON.stringify({
+							fingerprint,
+							photosToAdd: files.length
+						})
+					}
 				);
-				return;
-			}
 
-			const photoCount = files.length;
+				const result = await response.json();
 
-			if (photoCount > stats.remaining) {
-				notifications.show(
-					'warning',
-					`You can only process ${stats.remaining} more photos in the free version. You're trying to add ${photoCount}.`,
-					6000
-				);
-				return;
+				if (!result.canAdd) {
+					if (result.remaining === 0) {
+						notifications.show(
+							'error',
+							`🚫 You've reached your free limit of ${result.limit} photos! Upgrade to Pro for unlimited processing.`,
+							8000
+						);
+					} else {
+						notifications.show(
+							'warning',
+							`⚠️ You can only process ${result.remaining} more photos (you selected ${files.length}). You have ${result.used}/${result.limit} photos used in total.`,
+							10000
+						);
+					}
+					return;
+				}
+
+				if (result.used > result.limit * 0.8) {
+					notifications.show(
+						'info',
+						`ℹ️ Heads up! You have ${result.remaining} photos remaining out of ${result.limit} free photos.`,
+						6000
+					);
+				}
+			} catch (error) {
+				console.error('Server limit check failed, using local fallback:', error);
+
+				const stats = usageStore.getUsageStats();
+
+				if (stats.remaining === 0) {
+					notifications.show(
+						'error',
+						`🚫 You've reached your free limit of ${stats.limit} photos! Upgrade to Pro for unlimited processing.`,
+						8000
+					);
+					return;
+				}
+
+				const photoCount = files.length;
+
+				if (photoCount > stats.remaining) {
+					notifications.show(
+						'warning',
+						`⚠️ You can only process ${stats.remaining} more photos (you selected ${photoCount}). You have ${stats.used}/${stats.limit} photos used in total. Upgrade to Pro for unlimited access!`,
+						10000
+					);
+					return;
+				}
+
+				if (stats.used > stats.limit * 0.8) {
+					notifications.show(
+						'info',
+						`ℹ️ Heads up! You have ${stats.remaining} photos remaining out of ${stats.limit} free photos.`,
+						6000
+					);
+				}
 			}
 		}
 
@@ -147,19 +204,22 @@
 					filesStore.setExifData(photo.id, exifData);
 				}
 			}
+
 			usageStore.trackUsage(files.length);
+
 			if (shouldEnforceLimits()) {
 				const newStats = usageStore.getUsageStats();
-				if (newStats.remaining <= 20 && newStats.remaining > 0) {
+				if (newStats.remaining <= 10 && newStats.remaining > 0) {
 					notifications.show(
 						'warning',
-						`${newStats.remaining} photos remaining in free plan`,
-						4000
+						`🔥 Only ${newStats.remaining} photos left in your free plan!`,
+						5000
 					);
 				}
 			}
 		} catch (error) {
 			console.error('Error processing files:', error);
+			notifications.show('error', 'Failed to process some files. Please try again.', 5000);
 		} finally {
 			isExtracting = false;
 		}
@@ -244,7 +304,11 @@
 					<div class="file-stats">
 						<span>{$selectedCount} selected / {$totalFiles} total</span>
 						{#if shouldEnforceLimits()}
-							<span class="usage-indicator">
+							<span
+								class="usage-indicator {usageStore.getUsageStats().remaining <= 20
+									? 'usage-warning'
+									: ''}"
+							>
 								{usageStore.getUsageStats().remaining} of {usageStore.getUsageStats().limit} free photos
 								remaining
 							</span>
@@ -269,6 +333,35 @@
 					</div>
 					<p class="progress-text">{Math.round(downloadProgress)}% complete</p>
 				{/if}
+			</section>
+		{:else if shouldEnforceLimits()}
+			<section class="usage-info-section">
+				<div class="usage-info-card">
+					<div class="usage-stats">
+						<div class="usage-main">
+							<span class="usage-number">{usageStore.getUsageStats().remaining}</span>
+							<span class="usage-text">free photos remaining</span>
+						</div>
+						<div class="usage-details">
+							<span
+								>You've used {usageStore.getUsageStats().used} out of {usageStore.getUsageStats()
+									.limit} free photos</span
+							>
+							<div class="usage-bar">
+								<div
+									class="usage-progress"
+									style="width: {usageStore.getUsageStats().percentage}%"
+								></div>
+							</div>
+						</div>
+					</div>
+					{#if usageStore.getUsageStats().remaining === 0}
+						<div class="upgrade-prompt">
+							<p>🚀 <strong>Upgrade to Pro</strong> for unlimited photo processing!</p>
+							<button class="btn-primary">Get Pro Version</button>
+						</div>
+					{/if}
+				</div>
 			</section>
 		{/if}
 	</main>
@@ -441,5 +534,114 @@
 
 	:global([data-theme='dark']) .pro-badge {
 		color: var(--accent);
+	}
+
+	.usage-warning {
+		color: #e53e3e !important;
+		font-weight: 600;
+	}
+
+	.usage-info-section {
+		margin-bottom: 32px;
+	}
+
+	.usage-info-card {
+		background: white;
+		padding: 24px;
+		border-radius: 12px;
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+		border: 1px solid #e2e8f0;
+		text-align: center;
+	}
+
+	:global([data-theme='dark']) .usage-info-card {
+		background: var(--bg-secondary);
+		border-color: var(--border-color);
+	}
+
+	.usage-stats {
+		margin-bottom: 20px;
+	}
+
+	.usage-main {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		margin-bottom: 12px;
+	}
+
+	.usage-number {
+		font-size: 48px;
+		font-weight: 700;
+		color: #4299e1;
+		line-height: 1;
+	}
+
+	.usage-text {
+		font-size: 18px;
+		color: #718096;
+		font-weight: 500;
+	}
+
+	:global([data-theme='dark']) .usage-text {
+		color: var(--text-muted);
+	}
+
+	.usage-details {
+		font-size: 14px;
+		color: #718096;
+	}
+
+	:global([data-theme='dark']) .usage-details {
+		color: var(--text-muted);
+	}
+
+	.usage-bar {
+		width: 100%;
+		height: 8px;
+		background: #e2e8f0;
+		border-radius: 4px;
+		overflow: hidden;
+		margin-top: 8px;
+	}
+
+	:global([data-theme='dark']) .usage-bar {
+		background: var(--bg-tertiary);
+	}
+
+	.usage-progress {
+		height: 100%;
+		background: linear-gradient(90deg, #48bb78, #4299e1, #e53e3e);
+		transition: width 0.3s ease;
+	}
+
+	.upgrade-prompt {
+		border-top: 1px solid #e2e8f0;
+		padding-top: 20px;
+	}
+
+	:global([data-theme='dark']) .upgrade-prompt {
+		border-top-color: var(--border-color);
+	}
+
+	.upgrade-prompt p {
+		margin: 0 0 16px 0;
+		font-size: 16px;
+	}
+
+	.btn-primary {
+		background: #4299e1;
+		color: white;
+		border: none;
+		padding: 12px 24px;
+		border-radius: 8px;
+		font-size: 14px;
+		font-weight: 500;
+		cursor: pointer;
+		transition: background-color 0.2s;
+	}
+
+	.btn-primary:hover {
+		background: #3182ce;
 	}
 </style>
