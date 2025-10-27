@@ -1,5 +1,5 @@
 # -----------------------------
-# Node / SvelteKit
+# Node / SvelteKit  
 # -----------------------------
 node_modules/
 .build/
@@ -11,9 +11,14 @@ build/
 *.log
 *.tmp
 
-# Environment files
-.env
-.env.*
+# Environment files - UPDATED PATTERN
+.env.local
+.env.*.local
+.env.production
+.env.development.local
+
+# Keep .env for public vars (PUBLIC_*) - commit this one
+# Ignore .env.local for secrets (SUPABASE_SERVICE_ROLE_KEY, etc.) - don't commit
 
 # -----------------------------
 # Rust / Tauri (src-tauri)
@@ -22,7 +27,7 @@ build/
 src-tauri/target/
 src-tauri/**/target/
 
-# Platform-specific build artifacts
+# Platform-specific build artifacts  
 src-tauri/bundled/
 src-tauri/icons/
 src-tauri/target/release/
@@ -45,7 +50,7 @@ src-tauri/*.msi
 Thumbs.db
 
 # -----------------------------
-# Editor / IDE files
+# Editor / IDE files  
 # -----------------------------
 .vscode/
 .idea/

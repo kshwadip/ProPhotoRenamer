@@ -15,6 +15,7 @@
 	import FileList from '../components/FileList.svelte';
 	import TemplateEditor from '../components/TemplateEditor.svelte';
 	import DownloadButton from '../components/DownloadButton.svelte';
+	import { env } from '$env/dynamic/public';
 
 	let currentTemplate = '{date}_{model}_{counter}';
 	let previousTemplate = currentTemplate;
@@ -60,11 +61,11 @@
 			console.log('🔍 Generated fingerprint:', fingerprint);
 
 			const response = await fetch(
-				'https://vnustygjnsuncyhnqlxl.supabase.co/functions/v1/check-limit',
+				`${env.PUBLIC_SUPABASE_URL}/functions/v1/check-limit`,
 				{
 					method: 'POST',
 					headers: {
-						Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZudXN0eWdqbnN1bmN5aG5xbHhsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE0MDE1NTEsImV4cCI6MjA3Njk3NzU1MX0.DCu7-JhaLDBJzLvGCfkGJZYKbCS4qGgoXZNOR1Z9Kn4`,
+						Authorization: `Bearer ${env.PUBLIC_SUPABASE_ANON_KEY}`,
 						'Content-Type': 'application/json'
 					},
 					body: JSON.stringify({
@@ -194,11 +195,11 @@
 				const fingerprint = generateFingerprint();
 
 				const response = await fetch(
-					'https://vnustygjnsuncyhnqlxl.supabase.co/functions/v1/check-limit',
+					`${env.PUBLIC_SUPABASE_URL}/functions/v1/check-limit`,
 					{
 						method: 'POST',
 						headers: {
-							Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZudXN0eWdqbnN1bmN5aG5xbHhsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE0MDE1NTEsImV4cCI6MjA3Njk3NzU1MX0.DCu7-JhaLDBJzLvGCfkGJZYKbCS4qGgoXZNOR1Z9Kn4`,
+							Authorization: `Bearer ${env.PUBLIC_SUPABASE_ANON_KEY}`,
 							'Content-Type': 'application/json'
 						},
 						body: JSON.stringify({
@@ -269,10 +270,10 @@
 			// ALWAYS track downloads for usage limits (separate from analytics consent)
 			if (shouldEnforceLimits()) {
 				try {
-					await fetch('https://vnustygjnsuncyhnqlxl.supabase.co/functions/v1/check-limit', {
+					await fetch(`${env.PUBLIC_SUPABASE_URL}/functions/v1/check-limit`, {
 						method: 'POST',
 						headers: {
-							Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZudXN0eWdqbnN1bmN5aG5xbHhsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE0MDE1NTEsImV4cCI6MjA3Njk3NzU1MX0.DCu7-JhaLDBJzLvGCfkGJZYKbCS4qGgoXZNOR1Z9Kn4`,
+							Authorization: `Bearer ${env.PUBLIC_SUPABASE_ANON_KEY}`,
 							'Content-Type': 'application/json'
 						},
 						body: JSON.stringify({

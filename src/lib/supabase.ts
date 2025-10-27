@@ -1,14 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
+import { env } from '$env/dynamic/public';
 
-const supabaseUrl = typeof window !== 'undefined' 
-  ? (import.meta as any).env?.VITE_SUPABASE_URL 
-  : process.env.VITE_SUPABASE_URL;
+const supabaseUrl = `${env.PUBLIC_SUPABASE_URL}`;
+const supabaseAnonKey = `${env.PUBLIC_SUPABASE_ANON_KEY}`;
 
-const supabaseAnonKey = typeof window !== 'undefined' 
-  ? (import.meta as any).env?.VITE_SUPABASE_ANON_KEY 
-  : process.env.VITE_SUPABASE_ANON_KEY;
-
-const finalUrl = supabaseUrl;
-const finalKey = supabaseAnonKey;
-
-export const supabase = createClient(finalUrl, finalKey);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);

@@ -6,16 +6,16 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-serve(async (req: { method: string; json: () => PromiseLike<{ fingerprint: any; photosToAdd?: 0 | undefined; action?: "check" | undefined }> | { fingerprint: any; photosToAdd?: 0 | undefined; action?: "check" | undefined } }) => {
+serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    // Use service_role key to write to database
+    // Use environment variables
     const supabaseClient = createClient(
-      'https://vnustygjnsuncyhnqlxl.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZudXN0eWdqbnN1bmN5aG5xbHhsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MTQwMTU1MSwiZXhwIjoyMDc2OTc3NTUxfQ.cGfW_MMtrKDtNDv8pOQ-gESnG7byvUUpWus3nrTR7Ig'
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
     const { fingerprint, photosToAdd = 0, action = 'check' } = await req.json()
