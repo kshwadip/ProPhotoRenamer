@@ -1,16 +1,16 @@
 <script lang="ts">
 	import { filesStore, selectedCount, totalFiles } from '$lib/stores/files';
-    import { extractExif } from '$lib/utils/exif';
-    import { applyTemplate, batchRename } from '$lib/utils/rename';
-    import { createZip, downloadZip, type ZipResult } from '$lib/utils/zip';
-    import type { Photo } from '$lib/types/photo';
-    import { usageStore } from '$lib/stores/usage';
-    import { notifications } from '$lib/stores/notification';
-    import { shouldEnforceLimits } from '$lib/utils/environment';
-    import { analyticsStore } from '$lib/stores/analytics';
-    import { generateFingerprint } from '$lib/utils/fingerprint';
-    import { onMount } from 'svelte';
-	
+	import { extractExif } from '$lib/utils/exif';
+	import { applyTemplate, batchRename } from '$lib/utils/rename';
+	import { createZip, downloadZip, type ZipResult } from '$lib/utils/zip';
+	import type { Photo } from '$lib/types/photo';
+	import { usageStore } from '$lib/stores/usage';
+	import { notifications } from '$lib/stores/notification';
+	import { shouldEnforceLimits } from '$lib/utils/environment';
+	import { analyticsStore } from '$lib/stores/analytics';
+	import { generateFingerprint } from '$lib/utils/fingerprint';
+	import { onMount } from 'svelte';
+
 	import Dropzone from '../components/Dropzone.svelte';
 	import FileList from '../components/FileList.svelte';
 	import TemplateEditor from '../components/TemplateEditor.svelte';
@@ -21,6 +21,7 @@
 	let isExtracting = false;
 	let isDownloading = false;
 	let downloadProgress = 0;
+	let serverUsage: { remaining: any; limit: any; } | null = null;
 
 	$: photos = $filesStore.photos;
 	$: selectedPhotos = photos.filter((p) => p.selected);
@@ -34,9 +35,39 @@
 		previousTemplate = currentTemplate;
 	}
 
-	onMount(() => {
+	onMount(async () => {
 		analyticsStore.trackEvent('page_view');
+		serverUsage = await fetchServerUsage();
 	});
+
+	async function fetchServerUsage() {
+		if (!shouldEnforceLimits()) return null;
+
+		try {
+			const fingerprint = generateFingerprint();
+
+			const response = await fetch(
+				'https://vnustygjnsuncyhnqlxl.supabase.co/functions/v1/check-limit',
+				{
+					method: 'POST',
+					headers: {
+						Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZudXN0eWdqbnN1bmN5aG5xbHhsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE0MDE1NTEsImV4cCI6MjA3Njk3NzU1MX0.DCu7-JhaLDBJzLvGCfkGJZYKbCS4qGgoXZNOR1Z9Kn4`,
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify({
+						fingerprint,
+						photosToAdd: 0
+					})
+				}
+			);
+
+			const result = await response.json();
+			return result;
+		} catch (error) {
+			console.error('Failed to fetch server usage:', error);
+			return null;
+		}
+	}
 
 	function updatePreviews() {
 		let counter = 1;
@@ -109,88 +140,13 @@
 	}
 
 	async function handleFilesAdded(files: File[]) {
-		if (shouldEnforceLimits()) {
-			try {
-				const fingerprint = generateFingerprint();
+		console.log('🚀 Upload function called - NO SERVER CALLS VERSION');
 
-				const response = await fetch(
-					'https://vnustygjnsuncyhnqkl.supabase.co/functions/v1/check-limit',
-					{
-						method: 'POST',
-						headers: {
-							Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZudXN0eWdqbnN1bmN5aG5xa2wiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTcyOTk1MDAwNSwiZXhwIjoyMDQ1NTI2MDA1fQ.gCNdClDCaNwWIDc7hcGGRoGaAP9HH7g6ltLpGYW_ERE`,
-							'Content-Type': 'application/json'
-						},
-						body: JSON.stringify({
-							fingerprint,
-							photosToAdd: files.length
-						})
-					}
-				);
-
-				const result = await response.json();
-
-				if (!result.canAdd) {
-					if (result.remaining === 0) {
-						notifications.show(
-							'error',
-							`🚫 You've reached your free limit of ${result.limit} photos! Upgrade to Pro for unlimited processing.`,
-							8000
-						);
-					} else {
-						notifications.show(
-							'warning',
-							`⚠️ You can only process ${result.remaining} more photos (you selected ${files.length}). You have ${result.used}/${result.limit} photos used in total.`,
-							10000
-						);
-					}
-					return;
-				}
-
-				if (result.used > result.limit * 0.8) {
-					notifications.show(
-						'info',
-						`ℹ️ Heads up! You have ${result.remaining} photos remaining out of ${result.limit} free photos.`,
-						6000
-					);
-				}
-			} catch (error) {
-				console.error('Server limit check failed, using local fallback:', error);
-
-				const stats = usageStore.getUsageStats();
-
-				if (stats.remaining === 0) {
-					notifications.show(
-						'error',
-						`🚫 You've reached your free limit of ${stats.limit} photos! Upgrade to Pro for unlimited processing.`,
-						8000
-					);
-					return;
-				}
-
-				const photoCount = files.length;
-
-				if (photoCount > stats.remaining) {
-					notifications.show(
-						'warning',
-						`⚠️ You can only process ${stats.remaining} more photos (you selected ${photoCount}). You have ${stats.used}/${stats.limit} photos used in total. Upgrade to Pro for unlimited access!`,
-						10000
-					);
-					return;
-				}
-
-				if (stats.used > stats.limit * 0.8) {
-					notifications.show(
-						'info',
-						`ℹ️ Heads up! You have ${stats.remaining} photos remaining out of ${stats.limit} free photos.`,
-						6000
-					);
-				}
-			}
+		// Track analytics only if consented
+		if (analyticsStore.hasConsent()) {
+			analyticsStore.trackPhotosUploaded(files.length);
+			analyticsStore.trackEvent('photos_uploaded', { count: files.length });
 		}
-
-		analyticsStore.trackPhotosUploaded(files.length);
-		analyticsStore.trackEvent('photos_uploaded', { count: files.length });
 
 		filesStore.addFiles(files);
 		isExtracting = true;
@@ -202,19 +158,6 @@
 
 				if (photo) {
 					filesStore.setExifData(photo.id, exifData);
-				}
-			}
-
-			usageStore.trackUsage(files.length);
-
-			if (shouldEnforceLimits()) {
-				const newStats = usageStore.getUsageStats();
-				if (newStats.remaining <= 10 && newStats.remaining > 0) {
-					notifications.show(
-						'warning',
-						`🔥 Only ${newStats.remaining} photos left in your free plan!`,
-						5000
-					);
 				}
 			}
 		} catch (error) {
@@ -230,10 +173,52 @@
 	async function handleDownload() {
 		if (!canDownload) return;
 
+		// Check server-side limit before downloading
+		if (shouldEnforceLimits()) {
+			try {
+				const fingerprint = generateFingerprint();
+
+				const response = await fetch(
+					'https://vnustygjnsuncyhnqlxl.supabase.co/functions/v1/check-limit',
+					{
+						method: 'POST',
+						headers: {
+							Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZudXN0eWdqbnN1bmN5aG5xbHhsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE0MDE1NTEsImV4cCI6MjA3Njk3NzU1MX0.DCu7-JhaLDBJzLvGCfkGJZYKbCS4qGgoXZNOR1Z9Kn4`,
+							'Content-Type': 'application/json'
+						},
+						body: JSON.stringify({
+							fingerprint,
+							photosToAdd: selectedPhotos.length,
+							action: 'download'
+						})
+					}
+				);
+
+				const result = await response.json();
+
+				if (!result.canAdd) {
+					notifications.show(
+						'error',
+						`🚫 You've reached your free limit of ${result.limit} photos! You have processed ${result.used} photos.`,
+						8000
+					);
+					return;
+				}
+			} catch (error) {
+				console.error('Server limit check failed:', error);
+			}
+		}
+
 		isDownloading = true;
 		downloadProgress = 0;
 
 		try {
+			// Track local usage only when limits are enforced
+			if (shouldEnforceLimits()) {
+				usageStore.trackUsage(selectedPhotos.length);
+			}
+
+			// Rest of your download logic...
 			const exifDataMap = new Map();
 			selectedPhotos.forEach((photo) => {
 				if (photo.metadata.exif) {
@@ -257,11 +242,14 @@
 				}
 			});
 
-			analyticsStore.trackDownload(selectedPhotos.length);
-			analyticsStore.trackEvent('download_completed', {
-				photoCount: selectedPhotos.length,
-				template: currentTemplate
-			});
+			// Track analytics only if consented
+			if (analyticsStore.hasConsent()) {
+				analyticsStore.trackDownload(selectedPhotos.length);
+				analyticsStore.trackEvent('download_completed', {
+					photoCount: selectedPhotos.length,
+					template: currentTemplate
+				});
+			}
 
 			downloadZip(zipResult);
 
@@ -305,16 +293,18 @@
 						<span>{$selectedCount} selected / {$totalFiles} total</span>
 						{#if shouldEnforceLimits()}
 							<span
-								class="usage-indicator {usageStore.getUsageStats().remaining <= 20
+								class="usage-indicator {(serverUsage?.remaining ||
+									usageStore.getUsageStats().remaining) <= 20
 									? 'usage-warning'
 									: ''}"
 							>
-								{usageStore.getUsageStats().remaining} of {usageStore.getUsageStats().limit} free photos
-								remaining
+								{serverUsage?.remaining || usageStore.getUsageStats().remaining} of {serverUsage?.limit ||
+									usageStore.getUsageStats().limit} free photos remaining
 							</span>
 						{:else}
 							<span class="usage-indicator pro-badge"> ✨ Pro Version - Unlimited </span>
 						{/if}
+
 						<button class="btn-secondary" on:click={() => filesStore.clear()}> Clear All </button>
 					</div>
 				</div>

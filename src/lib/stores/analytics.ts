@@ -100,6 +100,11 @@ function createAnalyticsStore() {
   return {
     subscribe,
 
+    hasConsent: (): boolean => {
+      const consent = get(consentStore);
+      return consent.analyticsAllowed;
+    },
+
     trackEvent: (event: string, data?: Record<string, any>) => {
       update((analytics) => {
         const newEvent: AnalyticsEvent = {
