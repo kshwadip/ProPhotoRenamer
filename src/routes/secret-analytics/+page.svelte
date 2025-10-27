@@ -372,6 +372,28 @@
 			</div>
 		</header>
 
+		<!-- Add this debug section after the header -->
+		<div
+			class="debug-info"
+			style="background: #f0f0f0; padding: 20px; margin: 20px; border-radius: 8px;"
+		>
+			<h3>🐛 Debug Info</h3>
+			<p><strong>Raw Events Count:</strong> {allEvents.length}</p>
+			<p><strong>Selected Timeframe:</strong> {selectedTimeframe}</p>
+			<p><strong>Date Range:</strong> {JSON.stringify(getDateRange(selectedTimeframe))}</p>
+			<p><strong>Filtered Events:</strong> {analyticsData.recentEvents.length}</p>
+
+			<details>
+				<summary>Raw Events (First 5)</summary>
+				<pre>{JSON.stringify(allEvents.slice(0, 5), null, 2)}</pre>
+			</details>
+
+			<details>
+				<summary>Processed Analytics Data</summary>
+				<pre>{JSON.stringify(analyticsData, null, 2)}</pre>
+			</details>
+		</div>
+
 		<main class="dashboard-main">
 			<!-- Current Period Info -->
 			<div class="period-info">
