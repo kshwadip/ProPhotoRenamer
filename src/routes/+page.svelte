@@ -392,7 +392,7 @@
 						{/if}
 					{:else}
 						<div class="usage-stats">
-							<span class="usage-text">Loading usage...</span>
+							<span class="usage-text">Loading your free usage...</span>
 						</div>
 					{/if}
 				</div>
