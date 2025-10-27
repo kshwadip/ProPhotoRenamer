@@ -1,0 +1,53 @@
+# -----------------------------
+# Node / SvelteKit
+# -----------------------------
+node_modules/
+.build/
+.svelte-kit/
+svelte-kit
+dist/
+build/
+.vite/
+*.log
+*.tmp
+
+# Environment files
+.env
+.env.*
+
+# -----------------------------
+# Rust / Tauri (src-tauri)
+# -----------------------------
+# Cargo build output
+src-tauri/target/
+src-tauri/**/target/
+
+# Platform-specific build artifacts
+src-tauri/bundled/
+src-tauri/icons/
+src-tauri/target/release/
+src-tauri/target/debug/
+src-tauri/*.exe
+src-tauri/*.app
+src-tauri/*.dmg
+src-tauri/*.msi
+
+# Keep your Rust source code
+!src-tauri/src/**
+!src-tauri/Cargo.toml
+!src-tauri/Cargo.lock
+!src-tauri/tauri.conf.json
+
+# -----------------------------
+# OS-specific junk
+# -----------------------------
+.DS_Store
+Thumbs.db
+
+# -----------------------------
+# Editor / IDE files
+# -----------------------------
+.vscode/
+.idea/
+*.swp
+*.swo

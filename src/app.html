@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en" class="app-root">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Photo Renamer - Bulk rename photos using EXIF metadata" />
+  <link rel="icon" href="/favicon.ico" />
+
+  %sveltekit.head%
+  <title>PhotoRenamer - EXIF Based Bulk Photo Renamer</title>
+
+  <style>
+    /* Reset and base styles */
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+      background-color: #fefefe;
+      color: #333;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      line-height: 1.5;
+      overscroll-behavior-y: contain;
+    }
+
+    a {
+      color: #1e88e5;
+      text-decoration: none;
+    }
+
+    a:hover,
+    a:focus {
+      text-decoration: underline;
+    }
+
+    /* Optional global styles */
+    #svelte {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="svelte">%sveltekit.body%</div>
+
+  <noscript>
+    <strong>We're sorry but this app doesn't work properly without JavaScript enabled. Please enable it to continue.</strong>
+  </noscript>
+</body>
+
+</html>
