@@ -81,7 +81,7 @@
 
 <style>
   .dropzone {
-    border: 2px dashed #cbd5e0;
+    border: 2px dashed #000000;
     border-radius: 12px;
     padding: 48px 24px;
     text-align: center;
