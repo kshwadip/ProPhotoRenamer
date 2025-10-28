@@ -8,19 +8,12 @@
     "scripts": {
         "dev": "vite dev",
         "build": "vite build",
-        "preview": "vite preview",
-        "tauri:dev": "tauri dev",
-        "tauri:build": "tauri build",
-        "tauri:build:all": "tauri build --target x86_64-pc-windows-msvc && tauri build --target aarch64-apple-darwin && tauri build --target x86_64-unknown-linux-gnu",
-        "tauri:build:windows": "tauri build --target x86_64-pc-windows-msvc",
-        "tauri:build:mac": "tauri build --target aarch64-apple-darwin",
-        "tauri:build:linux": "tauri build --target x86_64-unknown-linux-gnu"
+        "preview": "vite preview"
     },
     "devDependencies": {
         "@sveltejs/adapter-static": "^2.0.3",
         "@sveltejs/kit": "^1.30.4",
         "@sveltejs/vite-plugin-svelte": "^2.5.3",
-        "@tauri-apps/cli": "^2.9.1",
         "supabase": "^2.53.6",
         "svelte": "^4.2.19",
         "typescript": "^5.0.0",
