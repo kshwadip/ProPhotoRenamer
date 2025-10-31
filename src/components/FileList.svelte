@@ -194,12 +194,37 @@
         overflow-y: auto;
     }
 
+    /* For Webkit Browsers (Chrome, Safari, Edge) */
+    :global([data-theme='dark']) .files-grid::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    :global([data-theme='dark']) .files-grid::-webkit-scrollbar-track {
+        background: #1e293b; /* Dark track background */
+    }
+
+    :global([data-theme='dark']) .files-grid::-webkit-scrollbar-thumb {
+        background-color: #475569; /* Dark scrollbar thumb */
+        border-radius: 4px;
+        border: 2px solid #1e293b; /* Padding around thumb */
+    }
+    
+    :global([data-theme='dark']) .files-grid::-webkit-scrollbar-thumb:hover {
+        background-color: #64748b; /* Dark scrollbar thumb on hover */
+    }
+
+    /* For Firefox */
+    :global([data-theme='dark']) .files-grid {
+        scrollbar-width: thin;
+        scrollbar-color: #475569 #1e293b; /* thumb and track color */
+    }
+
     .file-item {
         display: flex;
         gap: 12px;
         align-items: flex-start;
         padding: 12px 16px;
-        border-bottom: 1px solid #f7fafc;
+        border-bottom: 1px solid #737373;
         transition: background 0.2s;
     }
 

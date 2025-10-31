@@ -400,6 +400,7 @@
     .main-columns {
         display: flex;
         flex-direction: row;
+        gap: 10px;
     }
 
     :global(body) {
@@ -463,19 +464,14 @@
         flex: 1;
         justify-content: center;
         width: 100%;
-        padding: 0 20px;
         box-sizing: border-box;
     }
 
      .file-list-wrapper {
-        flex: 1; 
+        flex: 1;
+        min-width: 0; 
         overflow-y: auto; 
         max-height: 75vh;
-        &::-webkit-scrollbar {
-            display: none;
-        }
-        scrollbar-width: none;
-        -ms-overflow-style: none;
     }
 
     .section-header {
