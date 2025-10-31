@@ -339,14 +339,7 @@
                         <button class="btn-secondary" on:click={() => filesStore.clear()}> Clear All </button>
                     </div>
                 </div>
-                <FileList />
-            </section>
-
-            <section class="template-section">
-                <TemplateEditor bind:template={currentTemplate} {updatePreviews} />
-            </section>
-
-            <section class="download-section">
+                <section class="download-section">
                 <DownloadButton on:click={handleDownload} disabled={!canDownload || isDownloading} />
                 {#if isDownloading}
                     <div class="progress-bar">
@@ -355,6 +348,16 @@
                     <p class="progress-text">{Math.round(downloadProgress)}% complete</p>
                 {/if}
             </section>
+                <section class="main-columns">
+                    <section class="template-section">
+                         <TemplateEditor bind:template={currentTemplate} {updatePreviews} />
+                    </section>
+                    <div class="file-list-wrapper">
+                        <FileList />
+                    </div>
+                </section>
+            </section>
+
         {:else if shouldEnforceLimits()}
             <section class="usage-info-section">
                 <div class="usage-info-card">
@@ -394,6 +397,11 @@
 </div>
 
 <style>
+    .main-columns {
+        display: flex;
+        flex-direction: row;
+    }
+
     :global(body) {
         margin: 0;
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -407,6 +415,7 @@
     }
 
     .app-container {
+        width: 100%;
         max-width: 1200px;
         margin: 0 auto;
         padding: 16px 20px;
@@ -451,10 +460,22 @@
 
     .template-section {
         display: flex;
+        flex: 1;
         justify-content: center;
         width: 100%;
         padding: 0 20px;
         box-sizing: border-box;
+    }
+
+     .file-list-wrapper {
+        flex: 1; 
+        overflow-y: auto; 
+        max-height: 75vh;
+        &::-webkit-scrollbar {
+            display: none;
+        }
+        scrollbar-width: none;
+        -ms-overflow-style: none;
     }
 
     .section-header {

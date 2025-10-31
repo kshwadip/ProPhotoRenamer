@@ -243,7 +243,7 @@
 <style>
     .template-editor {
         width: 100%;
-        max-width: 800px;
+        max-width: 500px;
         margin: 0 auto;
         padding: 1.5rem;
         border-radius: 8px;

@@ -141,6 +141,7 @@
 
 <style>
     .file-list {
+        max-width: 600px;
         border: 1px solid #e2e8f0;
         border-radius: 8px;
         background: white;
