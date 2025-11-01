@@ -330,7 +330,7 @@
                                     : ''}"
                             >
                                 {serverUsage?.remaining || usageStore.getUsageStats().remaining} of {serverUsage?.limit ||
-                                    usageStore.getUsageStats().limit} free photos remaining
+                                    usageStore.getUsageStats().limit} Daily free photos remaining
                             </span>
                         {:else}
                             <span class="usage-indicator pro-badge"> ✨ Pro Version - Unlimited </span>
