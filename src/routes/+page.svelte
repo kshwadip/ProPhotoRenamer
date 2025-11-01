@@ -365,7 +365,7 @@
                         <div class="usage-stats">
                             <div class="usage-main">
                                 <span class="usage-number">{serverUsage.remaining}</span>
-                                <span class="usage-text">free photos remaining</span>
+                                <span class="usage-text">Daily free photos remaining</span>
                             </div>
                             <div class="usage-details">
                                 <span
