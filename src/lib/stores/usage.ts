@@ -9,7 +9,7 @@ interface UsageData {
 }
 
 const STORAGE_KEY = 'photorenamer_usage';
-const MAX_FREE_PHOTOS = 100;
+const MAX_FREE_PHOTOS = 1000;
 
 function generateFingerprint(): string {
   const canvas = document.createElement('canvas');
